@@ -2,6 +2,7 @@
 
 namespace Aedart\Http\Api\Resources\Relations\Concerns;
 
+use Aedart\Contracts\Database\Models\Sluggable;
 use Aedart\Contracts\Http\Api\Resources\Relations\Exceptions\RelationReferenceException;
 use Illuminate\Database\Eloquent\Model;
 
@@ -173,7 +174,8 @@ trait PrimaryKey
         mixed $identifier,
         Model $relation,
         $relationReference,
-    ): array {
+    ): array
+    {
         // Use specified display name for primary key. But, when none was provided,
         // guess the key name...
         $displayName = $relationReference->getPrimaryKeyDisplayName() ?? $this->guessPrimaryKeyName($relation, $relationReference);
