@@ -45,6 +45,88 @@ trait HttpCaching
     }
 
     /**
+     * Set this resource's ETag
+     *
+     * @param string|ETag|null $etag
+     *
+     * @return self
+     */
+    public function withEtag(string|ETag|null $etag): static
+    {
+        $this->cacheHeaders['etag'] = $etag;
+
+        return $this;
+    }
+
+    /**
+     * Get this resource's ETag
+     *
+     * @return string|ETag|null
+     *
+     * @throws ETagGeneratorException
+     */
+    public function getEtag(): string|ETag|null
+    {
+        if (!isset($this->cacheHeaders['etag'])) {
+            $this->withEtag($this->resolveResourceEtag());
+        }
+
+        return $this->cacheHeaders['etag'];
+    }
+
+    /**
+     * Removes ETag from this resource's "cache" headers
+     *
+     * @return self
+     */
+    public function withoutEtag(): static
+    {
+        unset($this->cacheHeaders['etag']);
+
+        return $this;
+    }
+
+    /**
+     * Set this resource's last modified date
+     *
+     * @param string|DateTimeInterface|null $lastModified
+     *
+     * @return self
+     */
+    public function withLastModifiedDate(string|DateTimeInterface|null $lastModified): static
+    {
+        $this->cacheHeaders['last_modified'] = $lastModified;
+
+        return $this;
+    }
+
+    /**
+     * Get this resource's last modified date
+     *
+     * @return string|DateTimeInterface|null
+     */
+    public function getLastModifiedDate(): string|DateTimeInterface|null
+    {
+        if (!isset($this->cacheHeaders['last_modified'])) {
+            $this->withLastModifiedDate($this->resolveResourceLastModifiedDate());
+        }
+
+        return $this->cacheHeaders['last_modified'];
+    }
+
+    /**
+     * Removes last modified date from this resource's cache headers
+     *
+     * @return self
+     */
+    public function withoutLastModifiedDate(): static
+    {
+        unset($this->cacheHeaders['last_modified']);
+
+        return $this;
+    }
+
+    /**
      * Returns predefined Http cache headers
      *
      * @see \Symfony\Component\HttpFoundation\Response::setCache
@@ -56,14 +138,14 @@ trait HttpCaching
     public function defaultCacheHeaders(): array
     {
         return [
-            'etag' => $this->getResourceEtag(),
-            'last_modified' => $this->getResourceLastModifiedDate(),
+            'etag' => $this->getEtag(),
+            'last_modified' => $this->getLastModifiedDate(),
             'private' => true,
 
             'max_age' => null,
             's_maxage' => null,
             'must_revalidate' => false,
-            'no_cache' => false,
+            'no_cache' => true,
             'no_store' => false,
             'no_transform' => false,
             'public' => false,
@@ -111,13 +193,30 @@ trait HttpCaching
     }
 
     /**
-     * Returns an ETag representation of the resource, if possible
+     * Prepares the Http Cache headers
+     *
+     * @param  array  $cacheHeaders
+     * @param \Illuminate\Http\Request  $request
+     * @param \Illuminate\Http\JsonResponse $response
+     *
+     * @return array
+     */
+    protected function prepareCacheHeaders(array $cacheHeaders, $request, $response): array
+    {
+        // Overwrite this method, if you require to adapt Http cache headers,
+        // based on given request and response.
+
+        return $cacheHeaders;
+    }
+
+    /**
+     * Resolves an ETag representation of the resource, if possible
      *
      * @return ETag|string|null
      *
      * @throws ETagGeneratorException
      */
-    public function getResourceEtag(): ETag|string|null
+    protected function resolveResourceEtag(): ETag|string|null
     {
         $resource = $this->resource;
 
@@ -129,11 +228,11 @@ trait HttpCaching
     }
 
     /**
-     * Returns the resource's "last modified date" if available
+     * Resolves the resource's "last modified date" if available
      *
      * @return string|DateTimeInterface|null
      */
-    public function getResourceLastModifiedDate(): string|DateTimeInterface|null
+    protected function resolveResourceLastModifiedDate(): string|DateTimeInterface|null
     {
         $resource = $this->resource;
 
@@ -144,22 +243,5 @@ trait HttpCaching
 
         $updatedAtKey = $resource->getUpdatedAtColumn();
         return $resource[$updatedAtKey] ?? null;
-    }
-
-    /**
-     * Prepares the Http Cache headers
-     *
-     * @param  array  $headers
-     * @param \Illuminate\Http\Request  $request
-     * @param \Illuminate\Http\JsonResponse $response
-     *
-     * @return array
-     */
-    protected function prepareCacheHeaders(array $headers, $request, $response): array
-    {
-        // Overwrite this method, if you require to adapt Http cache headers,
-        // based on given request and response.
-
-        return $headers;
     }
 }
